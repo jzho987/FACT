@@ -96,10 +96,10 @@ def cache_audio_features(seq_names):
         if os.path.exists(save_path):
             continue
         data, _ = librosa.load(os.path.join(FLAGS.audio_dir, f"{audio_name}.wav"), sr=SR)
-        envelope = librosa.onset.onset_strength(data, sr=SR)  # (seq_len,)
-        mfcc = librosa.feature.mfcc(data, sr=SR, n_mfcc=20).T  # (seq_len, 20)
+        envelope = librosa.onset.onset_strength(y=data, sr=SR)  # (seq_len,)
+        mfcc = librosa.feature.mfcc(y=data, sr=SR, n_mfcc=20).T  # (seq_len, 20)
         chroma = librosa.feature.chroma_cens(
-            data, sr=SR, hop_length=HOP_LENGTH, n_chroma=12).T  # (seq_len, 12)
+            y=data, sr=SR, hop_length=HOP_LENGTH, n_chroma=12).T  # (seq_len, 12)
 
         peak_idxs = librosa.onset.onset_detect(
             onset_envelope=envelope.flatten(), sr=SR, hop_length=HOP_LENGTH)
