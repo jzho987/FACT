@@ -106,5 +106,6 @@ venv.bak/
 data/
 checkpoints/
 outputs/
+generated_protos/
 
 .DS_Store
