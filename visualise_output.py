@@ -1,3 +1,5 @@
+# run with python visualize_output.py
+
 import numpy as np
 
 # Main function
