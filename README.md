@@ -78,6 +78,13 @@ python evaluator.py --config_path ./configs/fact_v5_deeper_t10_cm12.config --mod
 python tools/calculate_scores.py
 ```
 
+5. visualise motions
+- Install Blender
+- Set up SMPL to FBX Blender add-on: https://github.com/softcat477/SMPL-to-FBX
+- Adjust filename in pkl_converter
+- Run ``` python utils/pkl_converter.py ``` to generate pkl file from npy file
+- Open pkl file in Blender via add-on 
+- Adjust timeline in Blender as needed
 
 ## Citation
 

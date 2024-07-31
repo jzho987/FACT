@@ -2,6 +2,8 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 import pickle
 
+# This converts the motion npy to a pkl file, which can be visualised in Blender using the SMPL to FBX add-on. 
+
 # Main function
 def main():
     # Used loss and scaling from gBR_sBM_cAll_d04_mBR0_ch01
@@ -12,7 +14,7 @@ def main():
         "smpl_trans": None,
     }
 
-    filename = 'outputs_2/gPO_sBM_cAll_d10_mPO1_ch02_mHO5.npy' 
+    filename = 'outputs/gPO_sBM_cAll_d10_mPO1_ch02_mHO5.npy' 
     data = np.load(filename)
     data = np.array(data) # (N, 225)
 
@@ -27,7 +29,7 @@ def main():
     print("my_dict")
     print(my_dict)
 
-    dict_filename = 'output.pkl'
+    dict_filename = 'output2.pkl'
     with open(dict_filename, 'wb') as f:
         pickle.dump(my_dict, f)
 
