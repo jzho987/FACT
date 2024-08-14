@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 import pickle
+import glob
 
 # This converts the motion npy to a pkl file, which can be visualised in Blender using the SMPL to FBX add-on. 
 
@@ -14,24 +15,25 @@ def main():
         "smpl_trans": None,
     }
 
-    filename = 'outputs/gPO_sBM_cAll_d10_mPO1_ch02_mHO5.npy' 
-    data = np.load(filename)
-    data = np.array(data) # (N, 225)
+    npy_files = glob.glob('outputs/*.npy')
 
-    trans = data[:, 6:9]
-    poses = data[:, 9:]
+    for filename in npy_files:
+        data = np.load(filename)
+        data = np.array(data) # (N, 225)
 
-    poses = R.from_matrix(poses.reshape(-1, 3, 3)).as_rotvec().reshape(-1, 72)
+        trans = data[:, 6:9]
+        poses = data[:, 9:]
+        poses = R.from_matrix(poses.reshape(-1, 3, 3)).as_rotvec().reshape(-1, 72)
 
-    my_dict["smpl_poses"] = poses
-    my_dict["smpl_trans"] = trans
+        my_dict["smpl_poses"] = poses
+        my_dict["smpl_trans"] = trans
 
-    print("my_dict")
-    print(my_dict)
+        print("my_dict")
+        print(my_dict)
 
-    dict_filename = 'output2.pkl'
-    with open(dict_filename, 'wb') as f:
-        pickle.dump(my_dict, f)
+        dict_filename = filename.replace('.npy', '.pkl')
+        with open(dict_filename, 'wb') as f:
+            pickle.dump(my_dict, f)
 
 if __name__ == '__main__':
     main()
