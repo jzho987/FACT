@@ -107,5 +107,7 @@ data/
 checkpoints/
 outputs/
 generated_protos/
+outputsOrig/
+other/
 
 .DS_Store

@@ -10,7 +10,6 @@ import librosa
 from aist_plusplus.loader import AISTDataset
 
 import tensorflow as tf
-import json
 
 
 FLAGS = flags.FLAGS
@@ -126,10 +125,10 @@ def main(_):
 
     # create list
     seq_names = []
-    # if "train" in FLAGS.split:
-    #     seq_names += np.loadtxt(
-    #         os.path.join(FLAGS.anno_dir, "splits/crossmodal_train.txt"), dtype=str
-    #     ).tolist()
+    if "train" in FLAGS.split:
+        seq_names += np.loadtxt(
+            os.path.join(FLAGS.anno_dir, "splits/crossmodal_train.txt"), dtype=str
+        ).tolist()
     if "val" in FLAGS.split:
         seq_names += np.loadtxt(
             os.path.join(FLAGS.anno_dir, "splits/crossmodal_val.txt"), dtype=str
@@ -138,61 +137,49 @@ def main(_):
         seq_names += np.loadtxt(
             os.path.join(FLAGS.anno_dir, "splits/crossmodal_test.txt"), dtype=str
         ).tolist()
-    # ignore_list = np.loadtxt(
-    #     os.path.join(FLAGS.anno_dir, "ignore_list.txt"), dtype=str
-    # ).tolist()
-    # seq_names = [name for name in seq_names if name not in ignore_list]
+    ignore_list = np.loadtxt(
+        os.path.join(FLAGS.anno_dir, "ignore_list.txt"), dtype=str
+    ).tolist()
+    seq_names = [name for name in seq_names if name not in ignore_list]
 
     # create audio features
     print ("Pre-compute audio features ...")
     os.makedirs(FLAGS.audio_cache_dir, exist_ok=True)
     cache_audio_features(seq_names)
     
-    # # load data
-    # dataset = AISTDataset(FLAGS.anno_dir)
-    # print(dataset.motion_dir)
+    # load data
+    dataset = AISTDataset(FLAGS.anno_dir)
+    n_samples = len(seq_names)
+    for i, seq_name in enumerate(seq_names):
+        logging.info("processing %d / %d" % (i + 1, n_samples))
 
-    # n_samples = len(seq_names)
-    # for i, seq_name in enumerate(seq_names):
-    #     logging.info("processing %d / %d" % (i + 1, n_samples))
+        smpl_poses, smpl_scaling, smpl_trans = AISTDataset.load_motion(
+            dataset.motion_dir, seq_name)
+        smpl_trans /= smpl_scaling
+        smpl_poses = R.from_rotvec(
+            smpl_poses.reshape(-1, 3)).as_matrix().reshape(smpl_poses.shape[0], -1)
+        smpl_motion = np.concatenate([smpl_trans, smpl_poses], axis=-1)
+        audio, audio_name = load_cached_audio_features(seq_name)
 
-    #     smpl_poses, smpl_scaling, smpl_trans = AISTDataset.load_motion(
-    #         dataset.motion_dir, seq_name)
-    #     smpl_trans /= smpl_scaling
-    #     smpl_poses = R.from_rotvec(
-    #         smpl_poses.reshape(-1, 3)).as_matrix().reshape(smpl_poses.shape[0], -1)
-    #     smpl_motion = np.concatenate([smpl_trans, smpl_poses], axis=-1)
-    #     audio, audio_name = load_cached_audio_features(seq_name)
-
-    #     tfexample = to_tfexample(smpl_motion, audio, seq_name, audio_name)
-    #     write_tfexample(tfrecord_writers, tfexample)
+        tfexample = to_tfexample(smpl_motion, audio, seq_name, audio_name)
+        write_tfexample(tfrecord_writers, tfexample)
 
     # If testval, also test on un-paired data
     if FLAGS.split == "testval":
-        # Replace filename as needed
-        folder = 'inputs'
-        filename = 'out_pregen_6_long.json'
-        fullFilename = os.path.join(folder, filename)
-        f = open(fullFilename)
-        data = json.load(f)
-        f.close()
-        smpl_poses = data["smpl_poses"]
-        smpl_poses = np.array(smpl_poses)
-        smpl_trans = data["smpl_trans"]
-        smpl_trans = np.array(smpl_trans)
-        print("data - poses")
-        print(smpl_poses.shape)
-        print("data - trans")
-        print(smpl_trans.shape)
+        logging.info("Also add un-paired motion-music data for testing.")
+        for i, seq_name in enumerate(seq_names * 10):
+            logging.info("processing %d / %d" % (i + 1, n_samples * 10))
 
-        smpl_poses = R.from_rotvec(
-                    smpl_poses.reshape(-1, 3)).as_matrix().reshape(smpl_poses.shape[0], -1)
-        smpl_motion = np.concatenate([smpl_trans, smpl_poses], axis=-1)
-        audio, audio_name = load_cached_audio_features(random.choice(seq_names))
+            smpl_poses, smpl_scaling, smpl_trans = AISTDataset.load_motion(
+                dataset.motion_dir, seq_name)
+            smpl_trans /= smpl_scaling
+            smpl_poses = R.from_rotvec(
+                smpl_poses.reshape(-1, 3)).as_matrix().reshape(smpl_poses.shape[0], -1)
+            smpl_motion = np.concatenate([smpl_trans, smpl_poses], axis=-1)
+            audio, audio_name = load_cached_audio_features(random.choice(seq_names))
 
-        tfexample = to_tfexample(smpl_motion, audio, filename, audio_name)
-
-        write_tfexample(tfrecord_writers, tfexample)
+            tfexample = to_tfexample(smpl_motion, audio, seq_name, audio_name)
+            write_tfexample(tfrecord_writers, tfexample)
     
     close_tfrecord_writers(tfrecord_writers)
 
