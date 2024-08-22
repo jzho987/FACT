@@ -173,6 +173,7 @@ def main(_):
         folder = 'inputs'
         filename = 'out_pregen_6_long.json'
         fullFilename = os.path.join(folder, filename)
+        outputFilename = filename.replace('.json', '.pkl')
         f = open(fullFilename)
         data = json.load(f)
         f.close()
@@ -190,7 +191,7 @@ def main(_):
         smpl_motion = np.concatenate([smpl_trans, smpl_poses], axis=-1)
         audio, audio_name = load_cached_audio_features(random.choice(seq_names))
 
-        tfexample = to_tfexample(smpl_motion, audio, filename, audio_name)
+        tfexample = to_tfexample(smpl_motion, audio, outputFilename, audio_name)
 
         write_tfexample(tfrecord_writers, tfexample)
     
