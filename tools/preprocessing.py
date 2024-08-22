@@ -159,6 +159,18 @@ def main(_):
     #     smpl_poses, smpl_scaling, smpl_trans = AISTDataset.load_motion(
     #         dataset.motion_dir, seq_name)
     #     smpl_trans /= smpl_scaling
+
+        # print("seq_name")
+        # print(seq_name)
+        # print("dataset trans")
+        # print(smpl_trans.shape)
+
+        # smpl_trans_list = smpl_trans.tolist()
+        # json_filename = f"{seq_name}_trans.json"
+        # with open(json_filename, 'w') as json_file:
+        #     json.dump(smpl_trans_list, json_file)
+
+        # break
     #     smpl_poses = R.from_rotvec(
     #         smpl_poses.reshape(-1, 3)).as_matrix().reshape(smpl_poses.shape[0], -1)
     #     smpl_motion = np.concatenate([smpl_trans, smpl_poses], axis=-1)
@@ -171,9 +183,9 @@ def main(_):
     if FLAGS.split == "testval":
         # Replace filename as needed
         folder = 'inputs'
-        filename = 'out_pregen_6_long.json'
+        filename = 'out_pregen_4_long_trans.json'
         fullFilename = os.path.join(folder, filename)
-        outputFilename = filename.replace('.json', '.pkl')
+        outputFilename = os.path.splitext(filename)[0]
         f = open(fullFilename)
         data = json.load(f)
         f.close()
