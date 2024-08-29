@@ -10,7 +10,6 @@ import librosa
 from aist_plusplus.loader import AISTDataset
 
 import tensorflow as tf
-import json
 
 
 FLAGS = flags.FLAGS
@@ -83,13 +82,12 @@ def cache_audio_features(seq_names):
 
     def _get_tempo(audio_name):
         """Get tempo (BPM) for a music by parsing music name."""
-        assert len(audio_name) >= 4
+        assert len(audio_name) == 4
         if audio_name[0:3] in ['mBR', 'mPO', 'mLO', 'mMH', 'mLH', 'mWA', 'mKR', 'mJS', 'mJB']:
             return int(audio_name[3]) * 10 + 80
         elif audio_name[0:3] == 'mHO':
             return int(audio_name[3]) * 5 + 110
-        else: return 120
-        # else: assert False, audio_name
+        else: assert False, audio_name
 
     audio_names = list(set([seq_name.split("_")[-2] for seq_name in seq_names]))
 
@@ -127,95 +125,61 @@ def main(_):
 
     # create list
     seq_names = []
-    # if "train" in FLAGS.split:
-    #     seq_names += np.loadtxt(
-    #         os.path.join(FLAGS.anno_dir, "splits/crossmodal_train.txt"), dtype=str
-    #     ).tolist()
-
-    # Uncomment to use dataset music - BELOW
-    # if "val" in FLAGS.split:
-    #     seq_names += np.loadtxt(
-    #         os.path.join(FLAGS.anno_dir, "splits/crossmodal_val.txt"), dtype=str
-    #     ).tolist()
-    # if "test" in FLAGS.split:
-    #     seq_names += np.loadtxt(
-    #         os.path.join(FLAGS.anno_dir, "splits/crossmodal_test.txt"), dtype=str
-    #     ).tolist()
-    # Uncomment to use dataset music - ABOVE
-
-    # ignore_list = np.loadtxt(
-    #     os.path.join(FLAGS.anno_dir, "ignore_list.txt"), dtype=str
-    # ).tolist()
-    # seq_names = [name for name in seq_names if name not in ignore_list]
-
-    # Specify the music to use (place music in data/AIST/wav), then add '_custom' to variable below. E.g. ambient2.wav is the music file, so seq_name is ['ambient2_custom']
-    seq_names = ['ambient2_custom']
+    if "train" in FLAGS.split:
+        seq_names += np.loadtxt(
+            os.path.join(FLAGS.anno_dir, "splits/crossmodal_train.txt"), dtype=str
+        ).tolist()
+    if "val" in FLAGS.split:
+        seq_names += np.loadtxt(
+            os.path.join(FLAGS.anno_dir, "splits/crossmodal_val.txt"), dtype=str
+        ).tolist()
+    if "test" in FLAGS.split:
+        seq_names += np.loadtxt(
+            os.path.join(FLAGS.anno_dir, "splits/crossmodal_test.txt"), dtype=str
+        ).tolist()
+    ignore_list = np.loadtxt(
+        os.path.join(FLAGS.anno_dir, "ignore_list.txt"), dtype=str
+    ).tolist()
+    seq_names = [name for name in seq_names if name not in ignore_list]
 
     # create audio features
     print ("Pre-compute audio features ...")
     os.makedirs(FLAGS.audio_cache_dir, exist_ok=True)
     cache_audio_features(seq_names)
     
-    # # load data
-    # dataset = AISTDataset(FLAGS.anno_dir)
-    # print(dataset.motion_dir)
+    # load data
+    dataset = AISTDataset(FLAGS.anno_dir)
+    n_samples = len(seq_names)
+    for i, seq_name in enumerate(seq_names):
+        logging.info("processing %d / %d" % (i + 1, n_samples))
 
-    # n_samples = len(seq_names)
-    # for i, seq_name in enumerate(seq_names):
-    #     logging.info("processing %d / %d" % (i + 1, n_samples))
+        smpl_poses, smpl_scaling, smpl_trans = AISTDataset.load_motion(
+            dataset.motion_dir, seq_name)
+        smpl_trans /= smpl_scaling
+        smpl_poses = R.from_rotvec(
+            smpl_poses.reshape(-1, 3)).as_matrix().reshape(smpl_poses.shape[0], -1)
+        smpl_motion = np.concatenate([smpl_trans, smpl_poses], axis=-1)
+        audio, audio_name = load_cached_audio_features(seq_name)
 
-    #     smpl_poses, smpl_scaling, smpl_trans = AISTDataset.load_motion(
-    #         dataset.motion_dir, seq_name)
-    #     smpl_trans /= smpl_scaling
-
-        # print("seq_name")
-        # print(seq_name)
-        # print("dataset trans")
-        # print(smpl_trans.shape)
-
-        # smpl_trans_list = smpl_trans.tolist()
-        # json_filename = f"{seq_name}_trans.json"
-        # with open(json_filename, 'w') as json_file:
-        #     json.dump(smpl_trans_list, json_file)
-
-        # break
-    #     smpl_poses = R.from_rotvec(
-    #         smpl_poses.reshape(-1, 3)).as_matrix().reshape(smpl_poses.shape[0], -1)
-    #     smpl_motion = np.concatenate([smpl_trans, smpl_poses], axis=-1)
-    #     audio, audio_name = load_cached_audio_features(seq_name)
-
-    #     tfexample = to_tfexample(smpl_motion, audio, seq_name, audio_name)
-    #     write_tfexample(tfrecord_writers, tfexample)
+        tfexample = to_tfexample(smpl_motion, audio, seq_name, audio_name)
+        write_tfexample(tfrecord_writers, tfexample)
 
     # If testval, also test on un-paired data
     if FLAGS.split == "testval":
-        # Replace filename as needed
-        folder = 'inputs'
-        filename = 'out_pregen_4_long_trans.json'
-        fullFilename = os.path.join(folder, filename)
-        outputFilename = os.path.splitext(filename)[0]
-        f = open(fullFilename)
-        data = json.load(f)
-        f.close()
-        smpl_poses = data["smpl_poses"]
-        smpl_poses = np.array(smpl_poses)
-        smpl_trans = data["smpl_trans"]
-        smpl_trans = np.array(smpl_trans)
-        print("data - poses")
-        print(smpl_poses.shape)
-        print("data - trans")
-        print(smpl_trans.shape)
+        logging.info("Also add un-paired motion-music data for testing.")
+        for i, seq_name in enumerate(seq_names * 10):
+            logging.info("processing %d / %d" % (i + 1, n_samples * 10))
 
-        smpl_poses = R.from_rotvec(
-                    smpl_poses.reshape(-1, 3)).as_matrix().reshape(smpl_poses.shape[0], -1)
-        smpl_motion = np.concatenate([smpl_trans, smpl_poses], axis=-1)
+            smpl_poses, smpl_scaling, smpl_trans = AISTDataset.load_motion(
+                dataset.motion_dir, seq_name)
+            smpl_trans /= smpl_scaling
+            smpl_poses = R.from_rotvec(
+                smpl_poses.reshape(-1, 3)).as_matrix().reshape(smpl_poses.shape[0], -1)
+            smpl_motion = np.concatenate([smpl_trans, smpl_poses], axis=-1)
+            audio, audio_name = load_cached_audio_features(random.choice(seq_names))
 
-        # Randomly selects audio from seq_names
-        audio, audio_name = load_cached_audio_features(random.choice(seq_names))
-
-        tfexample = to_tfexample(smpl_motion, audio, outputFilename, audio_name)
-
-        write_tfexample(tfrecord_writers, tfexample)
+            tfexample = to_tfexample(smpl_motion, audio, seq_name, audio_name)
+            write_tfexample(tfrecord_writers, tfexample)
     
     close_tfrecord_writers(tfrecord_writers)
 

@@ -13,6 +13,11 @@ git clone https://github.com/liruilong940607/mint --recursive
 ```
 Note here `--recursive` is important as it will automatically clone the submodule ([orbit](https://github.com/tensorflow/models/tree/master/orbit)) as well.
 
+To pull the submodule separately after the repository is already cloned.
+```
+git submodule update --init --recursive 
+```
+
 #### Install dependencies
 ```
 conda create -n mint python=3.7
@@ -34,13 +39,15 @@ Note if you meet environment conflicts about numpy, you can try with `pip instal
 
 #### Get the data
 See the [website](https://google.github.io/aistplusplus_dataset/)
+Download the full dataset and put the "aist_plusplus_final" dir in "./data/aist_plusplus_final"
+Download the full waveform music set, and put the unzipped "wav" dir in "./data/AIST/wav"
 
 #### Get the checkpoint
 Download from google drive [here](https://drive.google.com/drive/folders/17GHwKRZbQfyC9-7oEpzCG8pp_rAI0cOm?usp=sharing), and put them to the folder `./checkpoints/`
 
 #### Run the code
 
-1. complie protocols
+1. compile protocols
 ```
 protoc ./mint/protos/*.proto
 ```
@@ -48,12 +55,12 @@ protoc ./mint/protos/*.proto
 2. preprocess dataset into tfrecord
 ```
 python tools/preprocessing.py \
-    --anno_dir="/mnt/data/aist_plusplus_final/" \
-    --audio_dir="/mnt/data/AIST/music/" \
+    --anno_dir="./data/aist_plusplus_final/" \
+    --audio_dir="./data/AIST/wav/" \
     --split=train
 python tools/preprocessing.py \
-    --anno_dir="/mnt/data/aist_plusplus_final/" \
-    --audio_dir="/mnt/data/AIST/music/" \
+    --anno_dir="./data/aist_plusplus_final/" \
+    --audio_dir="./data/AIST/wav/" \
     --split=testval
 ```
 
@@ -71,6 +78,13 @@ python evaluator.py --config_path ./configs/fact_v5_deeper_t10_cm12.config --mod
 python tools/calculate_scores.py
 ```
 
+5. visualise motions
+- Install Blender
+- Set up SMPL to FBX Blender add-on: https://github.com/softcat477/SMPL-to-FBX
+- Adjust filename in pkl_converter
+- Run ``` python utils/pkl_converter.py ``` to generate pkl file from npy file
+- Open pkl file in Blender via add-on 
+- Adjust timeline in Blender as needed
 
 ## Citation
 
