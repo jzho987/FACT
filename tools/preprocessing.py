@@ -83,12 +83,13 @@ def cache_audio_features(seq_names):
 
     def _get_tempo(audio_name):
         """Get tempo (BPM) for a music by parsing music name."""
-        assert len(audio_name) == 4
+        assert len(audio_name) >= 4
         if audio_name[0:3] in ['mBR', 'mPO', 'mLO', 'mMH', 'mLH', 'mWA', 'mKR', 'mJS', 'mJB']:
             return int(audio_name[3]) * 10 + 80
         elif audio_name[0:3] == 'mHO':
             return int(audio_name[3]) * 5 + 110
-        else: assert False, audio_name
+        else: return 120
+        # else: assert False, audio_name
 
     audio_names = list(set([seq_name.split("_")[-2] for seq_name in seq_names]))
 
@@ -130,18 +131,25 @@ def main(_):
     #     seq_names += np.loadtxt(
     #         os.path.join(FLAGS.anno_dir, "splits/crossmodal_train.txt"), dtype=str
     #     ).tolist()
-    if "val" in FLAGS.split:
-        seq_names += np.loadtxt(
-            os.path.join(FLAGS.anno_dir, "splits/crossmodal_val.txt"), dtype=str
-        ).tolist()
-    if "test" in FLAGS.split:
-        seq_names += np.loadtxt(
-            os.path.join(FLAGS.anno_dir, "splits/crossmodal_test.txt"), dtype=str
-        ).tolist()
+
+    # Uncomment to use dataset music - BELOW
+    # if "val" in FLAGS.split:
+    #     seq_names += np.loadtxt(
+    #         os.path.join(FLAGS.anno_dir, "splits/crossmodal_val.txt"), dtype=str
+    #     ).tolist()
+    # if "test" in FLAGS.split:
+    #     seq_names += np.loadtxt(
+    #         os.path.join(FLAGS.anno_dir, "splits/crossmodal_test.txt"), dtype=str
+    #     ).tolist()
+    # Uncomment to use dataset music - ABOVE
+
     # ignore_list = np.loadtxt(
     #     os.path.join(FLAGS.anno_dir, "ignore_list.txt"), dtype=str
     # ).tolist()
     # seq_names = [name for name in seq_names if name not in ignore_list]
+
+    # Specify the music to use (place music in data/AIST/wav), then add '_custom' to variable below. E.g. ambient2.wav is the music file, so seq_name is ['ambient2_custom']
+    seq_names = ['ambient2_custom']
 
     # create audio features
     print ("Pre-compute audio features ...")
@@ -201,6 +209,8 @@ def main(_):
         smpl_poses = R.from_rotvec(
                     smpl_poses.reshape(-1, 3)).as_matrix().reshape(smpl_poses.shape[0], -1)
         smpl_motion = np.concatenate([smpl_trans, smpl_poses], axis=-1)
+
+        # Randomly selects audio from seq_names
         audio, audio_name = load_cached_audio_features(random.choice(seq_names))
 
         tfexample = to_tfexample(smpl_motion, audio, outputFilename, audio_name)
